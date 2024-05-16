@@ -4,7 +4,7 @@
 # r8168 is the Linux device driver released for Realtek Gigabit Ethernet
 # controllers with PCI-Express interface.
 #
-# Copyright(c) 2022 Realtek Semiconductor Corp. All rights reserved.
+# Copyright(c) 2024 Realtek Semiconductor Corp. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the Free
@@ -47,6 +47,7 @@ CONFIG_CTAP_SHORT_OFF = n
 ENABLE_MULTIPLE_TX_QUEUE = y
 ENABLE_RSS_SUPPORT = y
 ENABLE_LIB_SUPPORT = y
+DISABLE_WOL_SUPPORT = n
 
 ifneq ($(KERNELRELEASE),)
 	obj-m := r8168.o
@@ -70,7 +71,9 @@ ifneq ($(KERNELRELEASE),)
 	    r8168-objs += r8168_dash.o
 		EXTRA_CFLAGS += -DENABLE_DASH_SUPPORT -DENABLE_DASH_PRINTER_SUPPORT
 	endif
-	EXTRA_CFLAGS += -DCONFIG_R8168_NAPI
+	ifneq ($(ENABLE_RSS_SUPPORT), y)
+		EXTRA_CFLAGS += -DCONFIG_R8168_NAPI
+	endif
 	EXTRA_CFLAGS += -DCONFIG_R8168_VLAN
 	ifeq ($(CONFIG_DOWN_SPEED_100), y)
 		EXTRA_CFLAGS += -DCONFIG_DOWN_SPEED_100
@@ -110,6 +113,9 @@ ifneq ($(KERNELRELEASE),)
 	ifeq ($(ENABLE_LIB_SUPPORT), y)
 		r8168-objs += r8168_lib.o
 		EXTRA_CFLAGS += -DENABLE_LIB_SUPPORT
+	endif
+	ifeq ($(DISABLE_WOL_SUPPORT), y)
+		EXTRA_CFLAGS += -DDISABLE_WOL_SUPPORT
 	endif
 else
 	BASEDIR := /lib/modules/$(shell uname -r)
