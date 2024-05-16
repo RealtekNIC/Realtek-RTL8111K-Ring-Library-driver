@@ -1701,6 +1701,26 @@ static int proc_dump_tx_desc(struct seq_file *m, void *v)
 
         rtnl_lock();
 
+#ifdef ENABLE_LIB_SUPPORT
+        (void)i;
+        if (tp->tx_ring[0].TxDescArray) {
+                struct rtl8168_tx_ring *ring = &tp->tx_ring[0];
+
+                seq_printf(m, "\ndump rtk tx desc:%d\n", ring->num_tx_desc);
+                _proc_dump_tx_desc(m, ring->TxDescArray,
+                                   ring->TxDescAllocSize,
+                                   ring->num_tx_desc);
+        }
+
+        if (tp->lib_tx_ring[1].desc_addr) {
+                struct rtl8168_ring *ring = &tp->lib_tx_ring[1];
+
+                seq_printf(m, "\ndump lib tx desc:%d\n", ring->ring_size);
+                _proc_dump_tx_desc(m, ring->desc_addr,
+                                   ring->desc_size,
+                                   ring->ring_size);
+        }
+#else
         for (i=0; i<tp->HwSuppNumTxQueues; i++) {
                 struct rtl8168_tx_ring *ring = &tp->tx_ring[i];
                 if (!ring->TxDescArray)
@@ -1709,17 +1729,6 @@ static int proc_dump_tx_desc(struct seq_file *m, void *v)
                 _proc_dump_tx_desc(m, ring->TxDescArray,
                                    ring->TxDescAllocSize,
                                    ring->num_tx_desc);
-        }
-
-#ifdef ENABLE_LIB_SUPPORT
-        for (i=0; i<tp->HwSuppNumTxQueues; i++) {
-                struct rtl8168_ring *ring = &tp->lib_tx_ring[i];
-                if (!ring->desc_addr)
-                        continue;
-                seq_printf(m, "\ndump lib Q%d tx desc:%d\n", i, ring->ring_size);
-                _proc_dump_tx_desc(m, ring->desc_addr,
-                                   ring->desc_size,
-                                   ring->ring_size);
         }
 #endif //ENABLE_LIB_SUPPORT
 
@@ -2517,13 +2526,13 @@ static int proc_dump_tx_desc(char *page, char **start,
 
         rtnl_lock();
 
-        for (i=0; i<tp->HwSuppNumTxQueues; i++) {
-                struct rtl8168_tx_ring *ring = &tp->tx_ring[i];
-                if (!ring->TxDescArray)
-                        continue;
+#ifdef ENABLE_LIB_SUPPORT
+        (void)i;
+        if (tp->tx_ring[0].TxDescArray) {
+                struct rtl8168_tx_ring *ring = &tp->tx_ring[0];
+
                 len += snprintf(page + len, count - len,
-                                "\ndump Q%d tx desc:%d",
-                                i,
+                                "\ndump rtk tx desc:%d\n",
                                 ring->num_tx_desc);
                 _proc_dump_tx_desc(page, &len, &count,
                                    ring->TxDescArray,
@@ -2531,18 +2540,30 @@ static int proc_dump_tx_desc(char *page, char **start,
                                    ring->num_tx_desc);
         }
 
-#ifdef ENABLE_LIB_SUPPORT
-        for (i=0; i<tp->HwSuppNumTxQueues; i++) {
-                struct rtl8168_ring *ring = &tp->lib_tx_ring[i];
-                if (!ring->desc_addr)
-                        continue;
+        if (tp->lib_tx_ring[1].desc_addr) {
+                struct rtl8168_ring *ring = &tp->lib_tx_ring[1];
+
                 len += snprintf(page + len, count - len,
-                                "\ndump lib Q%d tx desc:%d",
-                                i,
+                                "\ndump lib tx desc:%d\n",
                                 ring->ring_size);
-                _proc_dump_tx_desc(page, &len, ring->desc_addr,
+                _proc_dump_tx_desc(page, &len, &count,
+                                   ring->desc_addr,
                                    ring->desc_size,
                                    ring->ring_size);
+        }
+#else
+        for (i=0; i<tp->HwSuppNumTxQueues; i++) {
+                struct rtl8168_tx_ring *ring = &tp->tx_ring[i];
+                if (!ring->TxDescArray)
+                        continue;
+                len += snprintf(page + len, count - len,
+                                "\ndump Q%d tx desc:%d\n",
+                                i,
+                                ring->num_tx_desc);
+                _proc_dump_tx_desc(page, &len, &count,
+                                   ring->TxDescArray,
+                                   ring->TxDescAllocSize,
+                                   ring->num_tx_desc);
         }
 #endif //ENABLE_LIB_SUPPORT
 
